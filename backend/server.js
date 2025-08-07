@@ -1,56 +1,48 @@
-require("dotenv").config();
-const express = require("express");
-const cors = require("cors");
-const mongoose = require("mongoose");
+const express = require('express');
+const mongoose = require('mongoose');
+const dotenv = require('dotenv');
+const cors = require('cors');
 
+// Load environment variables
+dotenv.config();
+
+// Initialize express app
 const app = express();
-app.use(express.json());
 app.use(cors());
+app.use(express.json());
 
-// MongoDB Atlas Connection
-mongoose
-  .connect(process.env.MONGO_URI)
-  .then(() => {
-    console.log("MongoDB connected");
-  })
-  .catch((err) => {
-    console.log("MongoDB connection error:", err);
-  });
+// MongoDB connection
+mongoose.connect(process.env.MONGO_URI)
 
-// Start server
-const PORT = process.env.PORT || 9000;
-app.listen(PORT, () => {
-  console.log(`Server running on port ${PORT}`);
-});
+.then(() => console.log('✅ MongoDB Connected'))
+.catch((err) => console.error('❌ MongoDB Error:', err));
 
-// Schema and route
-const loginschema = mongoose.Schema({
+// Define Schema and Model
+const loginSchema = new mongoose.Schema({
   username: String,
   password: String,
 });
 
-const loginmodel = mongoose.model("login", loginschema, "login");
+const Login = mongoose.model('Login', loginSchema);
 
-app.post("/login", async (req, res) => {
-  const result = new loginmodel({
-    username: req.body.username,
-    password: req.body.password,
-  });
+// POST /login route
+app.post('/login', async (req, res) => {
+  try {
+    const { username, password } = req.body;
 
-  const rr = await result.save();
+    // Save the login data
+    const newLogin = new Login({ username, password });
+    await newLogin.save();
 
-  if (rr) {
-    res.send({ statuscode: 1 });
-  } else {
-    res.send({ statuscode: 0 });
+    res.json({ statuscode: 1, message: 'Login saved successfully' });
+  } catch (error) {
+    console.error(error);
+    res.status(500).json({ statuscode: 0, message: 'Login failed' });
   }
 });
-// ✅ Get all login data
-app.get("/login", async (req, res) => {
-  try {
-    const logins = await loginmodel.find();
-    res.send(logins);
-  } catch (err) {
-    res.status(500).send({ error: "Failed to fetch login data" });
-  }
+
+// Start server
+const PORT = process.env.PORT || 9000;
+app.listen(PORT, () => {
+  console.log(`🚀 Server running on port ${PORT}`);
 });
